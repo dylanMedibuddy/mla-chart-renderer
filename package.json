@@ -1,0 +1,18 @@
+{
+  "name": "mla-chart-renderer",
+  "version": "1.0.0",
+  "description": "Renders Mermaid markers in HTML to chart images via kroki.io and uploads to Drive",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "googleapis": "^144.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
