@@ -28,6 +28,41 @@ const IMAGE_WIDTH = parseInt(process.env.IMAGE_WIDTH || "600", 10);
 if (!DRIVE_FOLDER_ID) throw new Error("DRIVE_FOLDER_ID env var required");
 if (!SERVICE_ACCOUNT_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON env var required");
 
+// ---- Mermaid brand theme (Medibuddy palette) ----
+//
+// Injected into every Mermaid block before sending to kroki. Two parts:
+//
+// 1. The init header sets base theme + brand colours.
+// 2. The classDef trailer defines two styles AI is instructed to use:
+//      `:::action`   for action/process boxes (NHS blue, white text)
+//      `:::decision` for decision diamonds   (Medibuddy amber, dark text)
+//
+// AI-supplied %%{init: ...}%% blocks are stripped before injection so the
+// service is the single source of truth for chart styling.
+
+const THEME_HEADER = `%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#005EB8',
+  'primaryTextColor': '#fff',
+  'primaryBorderColor': '#003D7A',
+  'lineColor': '#333',
+  'edgeLabelBackground': '#fff',
+  'fontFamily': 'Arial',
+  'fontSize': '14px'
+}}}%%
+`;
+
+const THEME_CLASSDEFS = `
+
+classDef action fill:#005EB8,stroke:#003D7A,color:#fff,stroke-width:2px
+classDef decision fill:#FFB81C,stroke:#B8860B,color:#1a1a1a,stroke-width:2px
+`;
+
+function applyTheme(mermaidSyntax) {
+  // Strip any AI-supplied init block to avoid conflicts
+  const cleaned = mermaidSyntax.replace(/%%\{init:[\s\S]*?\}%%\s*/g, "");
+  return THEME_HEADER + cleaned.trim() + THEME_CLASSDEFS;
+}
+
 // ---- Google Drive auth ----
 const credentials = JSON.parse(SERVICE_ACCOUNT_JSON);
 const auth = new google.auth.GoogleAuth({
@@ -38,10 +73,11 @@ const drive = google.drive({ version: "v3", auth });
 
 // ---- Render one Mermaid block to PNG via kroki.io ----
 async function renderMermaid(mermaidSyntax) {
+  const themed = applyTheme(mermaidSyntax);
   const res = await fetch(KROKI_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    body: mermaidSyntax,
+    body: themed,
   });
 
   if (!res.ok) {
